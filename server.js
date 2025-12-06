@@ -5,7 +5,28 @@ import cors from "cors";
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+app.use((req, res, next) => {
+  let data = "";
+
+  req.on("data", chunk => {
+    data += chunk;
+  });
+
+  req.on("end", () => {
+    // Remove MT5 null bytes
+    data = data.replace(/\0/g, "");
+
+    try {
+      req.body = JSON.parse(data);
+      next();
+    } catch (e) {
+      console.error("JSON parse error:", e.message);
+      console.log("RAW DATA:", data);
+      return res.status(400).json({ error: "Invalid JSON", raw: data });
+    }
+  });
+});
+
 
 const API_KEY = "8f2a9d0b39f34b819c142acb7f12c677"; // Your secret key
 const DATA_FILE = "stats.json";
